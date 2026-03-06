@@ -61,8 +61,35 @@ public class GmailService {
 
         return tasks;
 
+    }
 
-}
+    public List<EmailDTO> fetchRecentEmails(int max) throws IOException {
+        Credential cred = oauthService.getCredential();
+        if (cred == null) throw new IllegalStateException("Login first");
+
+        Gmail gmail = new Gmail.Builder(
+                new NetHttpTransport(),
+                GsonFactory.getDefaultInstance(),
+                cred
+        ).setApplicationName("Tusk").build();
+
+        List<EmailDTO> emails = new ArrayList<>();
+
+        ListMessagesResponse response = gmail.users()
+                .messages()
+                .list("me")
+                .setLabelIds(List.of("INBOX"))
+                .setMaxResults(Long.valueOf(max))
+                .execute();
+
+        if (response.getMessages() == null) return emails;
+
+        for (Message m : response.getMessages()) {
+            Message full = gmail.users().messages().get("me", m.getId()).execute();
+            emails.add(toEmailDTO(full));
+        }
+        return emails;
+    }
     private EmailDTO toEmailDTO(Message msg) {
 
         EmailDTO dto = new EmailDTO();

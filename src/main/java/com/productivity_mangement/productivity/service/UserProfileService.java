@@ -30,8 +30,7 @@ public class UserProfileService {
 
     public void saveProfile(String email, UserProfileRequest request) {
 
-        UserProfile profile = new UserProfile();
-
+        UserProfile profile = repository.findByEmail(email).orElseGet(UserProfile::new);
         profile.setEmail(email);
         profile.setName(request.getName());
         profile.setProfession(request.getProfession());
@@ -39,21 +38,12 @@ public class UserProfileService {
         profile.setWakeTime(request.getWakeTime());
         profile.setSleepTime(request.getSleepTime());
         profile.setPriorities(request.getPriorities());
-
-        // String -> LocalDate
-        // store as String
         profile.setDob(request.getDob());
-
         if (request.getDob() != null && !request.getDob().isEmpty()) {
-
             LocalDate dob = LocalDate.parse(request.getDob());
             int age = Period.between(dob, LocalDate.now()).getYears();
             profile.setAge(age);
         }
-
-
-
-
         repository.save(profile);
     }
 
@@ -180,6 +170,23 @@ public class UserProfileService {
         userProfileRepository.save(profile);
     }
 
+    public void applyInference(String email, String profession, List<String> priorities) {
+        UserProfile profile = userProfileRepository.findByEmail(email).orElseGet(UserProfile::new);
+        profile.setEmail(email);
+        if (profession != null && !profession.isBlank()) {
+            profile.setProfession(profession);
+        }
+        if (priorities != null && !priorities.isEmpty()) {
+            List<String> existing = profile.getPriorities();
+            if (existing == null || existing.isEmpty()) {
+                profile.setPriorities(priorities);
+            } else {
+                existing.addAll(priorities);
+                profile.setPriorities(existing.stream().distinct().toList());
+            }
+        }
+        userProfileRepository.save(profile);
+    }
 
 
 }
